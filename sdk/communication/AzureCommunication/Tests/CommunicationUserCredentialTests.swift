@@ -97,11 +97,49 @@ class CommunicationUserCredentialTests: XCTestCase {
             XCTAssertThrowsError(try CommunicationUserCredential(token: invalidToken))
         }
     }
+    
+    func test_ThrowsIfMalformedTokenWithCompletion() {
+        let expectation = XCTestExpectation()
+        let invalidTokens = "foo"
+        
+        let userCredential = CommunicationUserCredential(
+            initialToken: invalidTokens,
+            refreshProactively: true,
+            tokenRefresher: fetchTokenSync)
 
-    func test_RefreshTokenProactively_TokenAlreadyExpired() throws {
+        userCredential.token { (token, error) in
+            XCTAssertNil(token)
+            XCTAssertNotNil(error)
+            XCTAssertEqual(error?.localizedDescription.contains("Token is not formatted correctly."), true)
+            expectation.fulfill()
+        }
+        
+        wait(for: [expectation], timeout: 2)
+    }
+    
+    func test_ThrowsIfInvalidTokenWithCompleton() {
+        let expectation = XCTestExpectation()
+        let invalidTokens = "foo.bar.foobar"
+        
+        let userCredential = CommunicationUserCredential(
+            initialToken: invalidTokens,
+            refreshProactively: true,
+            tokenRefresher: fetchTokenSync)
+
+        userCredential.token { (token, error) in
+            XCTAssertNil(token)
+            XCTAssertNotNil(error)
+            XCTAssertEqual(error?.localizedDescription.contains("Can't convert base64Data to base64AsString."), true)
+            expectation.fulfill()
+        }
+        
+        wait(for: [expectation], timeout: 2)
+    }
+    
+    func test_RefreshTokenProactively_TokenAlreadyExpired() {
         let expectation = XCTestExpectation()
 
-        let userCredential = try CommunicationUserCredential(
+        let userCredential = CommunicationUserCredential(
             initialToken: sampleExpiredToken,
             refreshProactively: true,
             tokenRefresher: fetchTokenSync
@@ -121,10 +159,10 @@ class CommunicationUserCredentialTests: XCTestCase {
         wait(for: [expectation], timeout: 2)
     }
 
-    func test_RefreshTokenProactively_FetchTokenReturnsError() throws {
+    func test_RefreshTokenProactively_FetchTokenReturnsError() {
         let expectation = XCTestExpectation()
 
-        let userCredential = try CommunicationUserCredential(
+        let userCredential = CommunicationUserCredential(
             initialToken: sampleExpiredToken,
             refreshProactively: true,
             tokenRefresher: fetchTokenSyncWithError
@@ -144,19 +182,19 @@ class CommunicationUserCredentialTests: XCTestCase {
         wait(for: [expectation], timeout: 2)
     }
 
-    func test_RefreshTokenProactively_TokenExpiringSoon() throws {
+    func test_RefreshTokenProactively_TokenExpiringSoon() {
         let testCases = [1, 9]
 
         let expectation = XCTestExpectation()
         let semaphore = DispatchSemaphore(value: 1)
 
-        try testCases.forEach { minutes in
+        testCases.forEach { minutes in
             semaphore.wait()
             setUp()
 
             let expiringToken = generateTokenValidForMinutes(minutes)
 
-            let userCredential = try CommunicationUserCredential(
+            let userCredential = CommunicationUserCredential(
                 initialToken: expiringToken,
                 refreshProactively: true,
                 tokenRefresher: fetchTokenSync
@@ -185,13 +223,13 @@ class CommunicationUserCredentialTests: XCTestCase {
         wait(for: [expectation], timeout: 2)
     }
 
-    func test_RefreshTokenOnDemand_SyncRefresh() throws {
+    func test_RefreshTokenOnDemand_SyncRefresh() {
         let expectation = XCTestExpectation()
 
         let expectedToken = sampleToken
         let expectedTokenExpiry = sampleTokenExpiry
 
-        let userCredential = try CommunicationUserCredential(
+        let userCredential = CommunicationUserCredential(
             initialToken: sampleExpiredToken,
             refreshProactively: false,
             tokenRefresher: fetchTokenSync
@@ -211,13 +249,13 @@ class CommunicationUserCredentialTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 
-    func test_RefreshTokenOnDemand_AsyncRefresh() throws {
+    func test_RefreshTokenOnDemand_AsyncRefresh() {
         let expectation = XCTestExpectation()
 
         let expectedToken = sampleToken
         let expectedTokenExpiry = sampleTokenExpiry
 
-        let userCredential = try CommunicationUserCredential(
+        let userCredential = CommunicationUserCredential(
             initialToken: sampleExpiredToken,
             refreshProactively: false,
             tokenRefresher: fetchTokenAsync

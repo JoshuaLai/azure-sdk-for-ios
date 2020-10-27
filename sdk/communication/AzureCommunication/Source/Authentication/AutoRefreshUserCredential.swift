@@ -42,15 +42,22 @@ internal class AutoRefreshUserCredential: CommunicationTokenCredential {
         tokenRefresher: @escaping (@escaping TokenRefreshOnCompletion) -> Void,
         refreshProactively: Bool,
         initialToken: String?
-    ) throws {
+    ) {
         if let initialToken = initialToken {
-            let initialAccessToken = try JwtTokenParser.createAccessToken(initialToken)
+            do {
+                let initialAccessToken = try JwtTokenParser.createAccessToken(initialToken)
 
-            self.accessTokenCache = ThreadSafeRefreshableAccessTokenCache(
-                refreshProactively: refreshProactively,
-                initialValue: initialAccessToken,
-                tokenRefresher: tokenRefresher
-            )
+                self.accessTokenCache = ThreadSafeRefreshableAccessTokenCache(
+                    refreshProactively: refreshProactively,
+                    initialValue: initialAccessToken,
+                    tokenRefresher: tokenRefresher
+                )
+            } catch {
+                self.accessTokenCache = ThreadSafeRefreshableAccessTokenCache(refreshProactively: refreshProactively,
+                                                                              tokenRefresher: { (completion) in
+                    completion(nil, error)
+                });
+            }
         } else {
             self.accessTokenCache = ThreadSafeRefreshableAccessTokenCache(
                 refreshProactively: refreshProactively,

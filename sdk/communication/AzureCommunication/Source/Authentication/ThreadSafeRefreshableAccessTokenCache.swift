@@ -41,6 +41,7 @@ internal class ThreadSafeRefreshableAccessTokenCache {
 
     private let proactiveRefreshingInterval = TimeInterval(600)
     private let onDemandRefreshingInterval = TimeInterval(120)
+    private let anyThreadRefreshing = DispatchSemaphore(value: 1)
 
     private let tokenRefresher: TokenRefreshAction
 
@@ -85,19 +86,15 @@ internal class ThreadSafeRefreshableAccessTokenCache {
         }
     }
 
-    let anyThreadRefreshing = DispatchSemaphore(value: 1)
-    public func getValue(
-        _ completionHandler: @escaping AccessTokenRefreshOnCompletion
-    ) {
+    public func getValue(_ completionHandler: @escaping AccessTokenRefreshOnCompletion) {
         if !shouldRefresh() {
             completionHandler(currentToken, nil)
             return
         }
 
         DispatchQueue.global(qos: .utility).async { [weak self] in
-            self?.anyThreadRefreshing.wait()
-
             guard let self = self else { return }
+            self.anyThreadRefreshing.wait()
 
             defer { self.anyThreadRefreshing.signal() }
 
@@ -143,7 +140,8 @@ internal class ThreadSafeRefreshableAccessTokenCache {
 
         proactiveRefreshTimer?.invalidate()
 
-        proactiveRefreshTimer = Timer.scheduledTimer(withTimeInterval: actionPeriod, repeats: false) { [weak self] _ in
+        proactiveRefreshTimer = Timer.scheduledTimer(withTimeInterval: actionPeriod,
+                                                     repeats: false) { [weak self] _ in
             self?.getValue { _, _ in }
         }
     }

@@ -67,8 +67,8 @@ public typealias TokenRefreshOnCompletion = (String?, Error?) -> Void
         initialToken: String? = nil,
         refreshProactively: Bool = false,
         tokenRefresher: @escaping (@escaping TokenRefreshOnCompletion) -> Void
-    ) throws {
-        self.userTokenCredential = try AutoRefreshUserCredential(
+    ) {
+        self.userTokenCredential = AutoRefreshUserCredential(
             tokenRefresher: tokenRefresher,
             refreshProactively: refreshProactively,
             initialToken: initialToken
